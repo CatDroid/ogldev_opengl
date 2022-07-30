@@ -21,6 +21,17 @@
 #include <GL/freeglut.h>
 #include <stdio.h>
 
+/*
+	修改
+	1. 平台工具集 Visual Studio 2017 (v141)   默认是v143
+	2. Windows SDK 版本 10.0.17763.0  否则 stdio.h 找不到
+	3. OpenCV32 下载安装 得到头文件和库 安装/解压目录在 D:\OpenCV32
+	    https://sourceforge.net/projects/opencvlibrary/files/opencv-win/
+		增加库搜索目录 D:\OpenCV32\build\x64\vc14\lib
+		(头文件搜索目录 已经默认是 D:\OpenCV32\build\include 不用添加)
+
+*/
+
 
 static void RenderSceneCB()
 {

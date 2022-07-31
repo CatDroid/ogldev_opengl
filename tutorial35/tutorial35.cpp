@@ -33,6 +33,8 @@
 #include "ogldev_basic_mesh.h"
 #include "gbuffer.h"
 
+#include "filesystem.h"
+
 using namespace std;
 
 #define WINDOW_WIDTH  1280
@@ -75,7 +77,7 @@ public:
                 m_DSGeomPassTech.Enable();
                 m_DSGeomPassTech.SetColorTextureUnit(COLOR_TEXTURE_UNIT_INDEX);
 
-        if (!m_mesh.LoadMesh("../Content/phoenix_ugv.md2")) {
+        if (!m_mesh.LoadMesh(FileSystem::getPath("Content/phoenix_ugv.md2")) ){
                         return false;
                 }
 

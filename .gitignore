@@ -1,4 +1,5 @@
 build/
+bin/
 */build/*
 */dist/*
 */nbproject/private/*

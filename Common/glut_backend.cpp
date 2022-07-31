@@ -234,7 +234,7 @@ void GLUTBackendRun(ICallbacks* pCallbacks)
     }
 
     s_pCallbacks = pCallbacks;
-    glutInitCallbacks();
+    glutInitCallbacks(); //  给glut设置各种回调函数
     glutMainLoop();
 }
 

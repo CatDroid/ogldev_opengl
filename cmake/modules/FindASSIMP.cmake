@@ -10,12 +10,15 @@ FIND_PATH( ASSIMP_INCLUDE_DIR assimp/mesh.h
 	/opt/local/include
 	${CMAKE_SOURCE_DIR}/Include/assimp5 #修改目录 必须能够定位 assimp/mesh.h
 )
-FIND_LIBRARY( ASSIMP_LIBRARY assimp
+FIND_LIBRARY( ASSIMP_LIBRARY 
+	NAMES 
+	assimp-vc142-mt assimp
+	PATHS
 	/usr/lib64
 	/usr/lib
 	/usr/local/lib
 	/opt/local/lib
-	${CMAKE_SOURCE_DIR}/Lib # 使用 ogldev_opengl/Lib 而不是 Windows/Lib 
+	${CMAKE_SOURCE_DIR}/Windows/Lib # Lib目录下的是32bit Windows/Lib的是64bit
 )
 
 MESSAGE(STATUS "ASSIMP_INCLUDE_DIR: ${ASSIMP_INCLUDE_DIR}")

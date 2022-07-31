@@ -92,7 +92,7 @@ public:
 
     void Run()
     {
-        GLUTBackendRun(this);
+        GLUTBackendRun(this); // this是 ICallbacks glut会间接从GLUTBackend回调过来这里
     }
 
 
@@ -104,8 +104,8 @@ public:
 
         m_pGameCamera->OnRender();
 
-        DSGeometryPass();
-                DSLightPass();
+        DSGeometryPass(); // 几何处理阶段  G缓冲区将包含最近像素的属性(the closest pixels)
+		DSLightPass();		 // 光照计算阶段
 
         RenderFPS();
 
@@ -115,21 +115,23 @@ public:
 
     void DSGeometryPass()
     {
-                m_DSGeomPassTech.Enable();
+		m_DSGeomPassTech.Enable(); // 使用几何阶段的shader
 
-        m_gbuffer.BindForWriting();
+        m_gbuffer.BindForWriting(); // G-Buffer 绑定 准备渲染到G-buffer
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                Pipeline p;
+		Pipeline p;							 // 设置物体的旋转缩放 和 相机九参数 
         p.Scale(0.1f, 0.1f, 0.1f);
         p.Rotate(0.0f, m_scale, 0.0f);
         p.WorldPos(-0.8f, -1.0f, 12.0f);
         p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
         p.SetPerspectiveProj(m_persProjInfo);
-        m_DSGeomPassTech.SetWVP(p.GetWVPTrans());
-                m_DSGeomPassTech.SetWorldMatrix(p.GetWorldTrans());
-        m_mesh.Render();
+
+        m_DSGeomPassTech.SetWVP(p.GetWVPTrans()); // 设置MVP和M矩阵到shader
+        m_DSGeomPassTech.SetWorldMatrix(p.GetWorldTrans());
+
+        m_mesh.Render(); //渲染网格(render the mesh):内部会绑定模型的纹理单元uniform和顶点属性VAO等(但用的shader不是内部提供的)
     }
 
     void DSLightPass()
@@ -138,16 +140,24 @@ public:
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        m_gbuffer.BindForReading();
+		// 绑定当前读取的fbo为 m_gbuffer
+        m_gbuffer.BindForReading(); // 这里只是把g-buffer拷贝到default framebuffer
 
         GLint HalfWidth = (GLint)(WINDOW_WIDTH / 2.0f);
         GLint HalfHeight = (GLint)(WINDOW_HEIGHT / 2.0f);
 
+		// 设置源fbo的各个附件为当前读取附件 glReadBuffer
         m_gbuffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION);
+		// 目标位置和大小调整  1280x1024  --> 690x512  颜色附件 并且linear插值 !!
+		// 第 9 个参数表示我们是否要从颜色、深度或模板缓冲区中读取， 并且可以取值 GL_COLOR_BUFFER_BIT、GL_DEPTH_BUFFER_BIT 或 GL_STENCIL_BUFFER_BIT
+		// 最后一个参数确定 OpenGL 处理可能缩放的方式（当源参数和目标参数的维度不同时），可以是 GL_NEAREST 或 GL_LINEAR（看起来比 GL_NEAREST 更好，但需要更多的计算资源）。
+		//
         glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
 
         m_gbuffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_DIFFUSE);
         glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, HalfHeight, HalfWidth, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
 
         m_gbuffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL);
         glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, HalfWidth, HalfHeight, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -178,7 +188,7 @@ public:
 
 private:
 
-        DSGeomPassTech m_DSGeomPassTech;
+	DSGeomPassTech m_DSGeomPassTech;
     Camera* m_pGameCamera;
     float m_scale;
     BasicMesh m_mesh;

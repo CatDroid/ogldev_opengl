@@ -65,15 +65,25 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
 
     // depth
     glBindTexture(GL_TEXTURE_2D, m_depthTexture);
+	// 
+	// 2.0是没有深度纹理的 3.0才有 
+	// GL_DEPTH24_STENCIL8			GL_DEPTH_STENCIL			GL_UNSIGNED_INT_24_8
+	// GL_DEPTH_COMPONENT32F	GL_DEPTH_COMPONENT		GL_FLOAT
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, WindowWidth, WindowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTexture, 0);
 
+	// MRT 多重渲染 
     GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0,
-                             GL_COLOR_ATTACHMENT1,
-                             GL_COLOR_ATTACHMENT2,
-                             GL_COLOR_ATTACHMENT3 };
+											GL_COLOR_ATTACHMENT1,
+											GL_COLOR_ATTACHMENT2,
+											GL_COLOR_ATTACHMENT3 };
+
 
     glDrawBuffers(ARRAY_SIZE_IN_ELEMENTS(DrawBuffers), DrawBuffers);
+
+	// 不同于 glDrawBuffer glReadBuffer
+	// glDrawBuffer(GL_NONE) 设置到当前绑定的fbo, 没有颜色缓冲的fbo, 阴影 
+	// glReadBuffer 指定读取的附件 glBlitFrameBuffer glReadPixelBuffer
 
     GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
@@ -91,17 +101,18 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
 
 void GBuffer::BindForWriting()
 {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);// draw fbo指定为 m_fbo
 }
 
 
 void GBuffer::BindForReading()
 {
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo); // read fbo指定为 m_fbo 
 }
 
 
 void GBuffer::SetReadBuffer(GBUFFER_TEXTURE_TYPE TextureType)
 {
-    glReadBuffer(GL_COLOR_ATTACHMENT0 + TextureType);
+	// 将特定纹理绑定到 GL_READ_BUFFER 目标（因为我们一次只能从单个纹理复制）
+    glReadBuffer(GL_COLOR_ATTACHMENT0 + TextureType); 
 }

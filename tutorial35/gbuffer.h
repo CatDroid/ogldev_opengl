@@ -29,7 +29,8 @@ class GBuffer
 {
 public:
 
-    enum GBUFFER_TEXTURE_TYPE {
+    enum GBUFFER_TEXTURE_TYPE // G 缓冲区所需的所有纹理
+	{
         GBUFFER_TEXTURE_TYPE_POSITION,
         GBUFFER_TEXTURE_TYPE_DIFFUSE,
         GBUFFER_TEXTURE_TYPE_NORMAL,
@@ -43,15 +44,17 @@ public:
 
     bool Init(unsigned int WindowWidth, unsigned int WindowHeight);
 
+	// 在geometry pass几何处理阶段, 将纹理绑定为目标(输出目标)
     void BindForWriting();
    
+	// 将 FBO 绑定为输入，因此可以将其内容转储到屏幕上
     void BindForReading();  
     
     void SetReadBuffer(GBUFFER_TEXTURE_TYPE TextureType);
 
 private:
                      
-    GLuint m_fbo;
+    GLuint m_fbo; // 一个fbo =  GBUFFER_NUM_TEXTURES个颜色附件  + 1个深度纹理
     GLuint m_textures[GBUFFER_NUM_TEXTURES];
     GLuint m_depthTexture;
 };

@@ -161,6 +161,7 @@ static void MouseCB(int Button, int State, int x, int y)
 
 static void glutInitCallbacks()
 {
+	// 设置给glut的回调函数
     glutDisplayFunc(RenderSceneCB);
     glutIdleFunc(IdleCB);
     glutSpecialFunc(SpecialKeyboardCB);
@@ -169,21 +170,22 @@ static void glutInitCallbacks()
     glutMouseFunc(MouseCB);
 }
 
-
+// GLUT后端的初始化
 void GLUTBackendInit(int argc, char** argv, bool WithDepth, bool WithStencil)
 {
     sWithDepth = WithDepth;
     sWithStencil = WithStencil;
 
+	// 必选先调用这个，才能调用其他的glut函数
     glutInit(&argc, argv);
 
-    uint DisplayMode = GLUT_DOUBLE|GLUT_RGBA;
+    uint DisplayMode = GLUT_DOUBLE|GLUT_RGBA; // 双缓冲
 
-    if (WithDepth) {
+    if (WithDepth) { // 带有深度的窗口
         DisplayMode |= GLUT_DEPTH;
     }
 
-    if (WithStencil) {
+    if (WithStencil) { // 带有模板的窗口 
         DisplayMode |= GLUT_STENCIL;
     }
 
@@ -192,7 +194,7 @@ void GLUTBackendInit(int argc, char** argv, bool WithDepth, bool WithStencil)
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 }
 
-
+// 创建GLUT为后端的窗口
 bool GLUTBackendCreateWindow(unsigned int Width, unsigned int Height, bool isFullScreen, const char* pTitle)
 {
     if (isFullScreen) {
@@ -203,10 +205,12 @@ bool GLUTBackendCreateWindow(unsigned int Width, unsigned int Height, bool isFul
         glutEnterGameMode();
     }
     else {
+		// 指定窗口大小
         glutInitWindowSize(Width, Height);
         glutCreateWindow(pTitle);
     }
 
+	// 调用glew加载器 加载opengl函数指针 
     // Must be done after glut is initialized!
     GLenum res = glewInit();
     if (res != GLEW_OK) {

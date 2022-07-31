@@ -24,6 +24,9 @@
 #define _USE_MATH_DEFINES
 #endif
 #include <cmath>
+#include <algorithm> // min max 没有定义的话 要打开这个
+#include <math.h> 
+// 要选择<math.h>头文件，在<cmath>文件中是没有对M_PI 的定义的
 #else
 #include <math.h>
 #endif

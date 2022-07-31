@@ -119,18 +119,18 @@ set(CHAPTERS
 )
 
 
-
 # Common/CMakeLists.txt 
 set(LIBS ${LIBS} math_3d)
 set(LIBS ${LIBS} pipeline)
 set(LIBS ${LIBS} app)
 set(LIBS ${LIBS} camera)
-set(LIBS ${LIBS} atb)
+#set(LIBS ${LIBS} atb)
 set(LIBS ${LIBS} util)
 set(LIBS ${LIBS} technique)
 set(LIBS ${LIBS} backend)
 set(LIBS ${LIBS} basic_mesh)
 set(LIBS ${LIBS} texture)
+set(LIBS ${LIBS} STB_IMAGE)
 
 
  

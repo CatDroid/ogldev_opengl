@@ -25,8 +25,8 @@
 GBuffer::GBuffer()
 {
     m_fbo = 0;
-        m_depthTexture = 0;
-        m_finalTexture = 0;
+    m_depthTexture = 0;
+    m_finalTexture = 0;
     ZERO_MEM(m_textures);
 }
 
@@ -40,13 +40,13 @@ GBuffer::~GBuffer()
         glDeleteTextures(ARRAY_SIZE_IN_ELEMENTS(m_textures), m_textures);
     }
 
-        if (m_depthTexture != 0) {
-                glDeleteTextures(1, &m_depthTexture);
-        }
+    if (m_depthTexture != 0) {
+            glDeleteTextures(1, &m_depthTexture);
+    }
 
-        if (m_finalTexture != 0) {
-                glDeleteTextures(1, &m_finalTexture);
-        }
+    if (m_finalTexture != 0) {
+            glDeleteTextures(1, &m_finalTexture);
+    }
 }
 
 bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
@@ -62,6 +62,7 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
 
     glGenTextures(1, &m_finalTexture);
 
+	// G-Buffer作用的3个浮点纹理
     for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_textures) ; i++) {
         glBindTexture(GL_TEXTURE_2D, m_textures[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, WindowWidth, WindowHeight, 0, GL_RGB, GL_FLOAT, NULL);
@@ -70,12 +71,12 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_textures[i], 0);
     }
 
-    // depth
+    // depth 深度纹理(浮点深度,8bit定点模板)
     glBindTexture(GL_TEXTURE_2D, m_depthTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH32F_STENCIL8, WindowWidth, WindowHeight, 0, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_depthTexture, 0);
 
-    // final
+    // final 增加了另外一个纹理到附件4 
     glBindTexture(GL_TEXTURE_2D, m_finalTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WindowWidth, WindowHeight, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -88,9 +89,10 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
         printf("FB error, status: 0x%x\n", Status);
         return false;
     }
-
-        // restore default FBO
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	
+	// FBO = 3浮点纹理(颜色附件）+ 深度模板(24浮点+8bit) + 定点纹理(颜色附件4)
+	// restore default FBO
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     return true;
 }
@@ -98,19 +100,21 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
 
 void GBuffer::StartFrame()
 {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
-        glDrawBuffer(GL_COLOR_ATTACHMENT4);
-        glClear(GL_COLOR_BUFFER_BIT);
+	// 渲染buffer只有附件4
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+    glDrawBuffer(GL_COLOR_ATTACHMENT4); // 与 glDrawBuffers 的区别
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 
 void GBuffer::BindForGeomPass()
 {
+	// 渲染buffer有3个 
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
 
-        GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0,
-                                                     GL_COLOR_ATTACHMENT1,
-                                                     GL_COLOR_ATTACHMENT2 };
+	GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0,
+                                            GL_COLOR_ATTACHMENT1,
+                                            GL_COLOR_ATTACHMENT2 };
 
     glDrawBuffers(ARRAY_SIZE_IN_ELEMENTS(DrawBuffers), DrawBuffers);
 }
@@ -118,8 +122,9 @@ void GBuffer::BindForGeomPass()
 
 void GBuffer::BindForStencilPass()
 {
+	// 渲染buffer为0, 只是为了写入模板, 空片元着色器
     // must disable the draw buffers
-        glDrawBuffer(GL_NONE);
+	glDrawBuffer(GL_NONE);
 }
 
 

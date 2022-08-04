@@ -78,8 +78,9 @@ vec4 CalcDirectionalLight(vec3 WorldPos, vec3 Normal)
 							 gDirectionalLight.Direction,
 							 WorldPos,
 							 Normal);
+							 // 跟点光源区别 不用计算光衰减
 }
-
+// dir_light_pass.fs 没有跑这个函数 只是跟point_light_pass.fs一样
 vec4 CalcPointLight(vec3 WorldPos, vec3 Normal)
 {
     vec3 LightDirection = WorldPos - gPointLight.Position;
@@ -100,6 +101,7 @@ vec4 CalcPointLight(vec3 WorldPos, vec3 Normal)
 
 vec2 CalcTexCoord()
 {
+	// 计算G-Buffer的纹理坐标
     return gl_FragCoord.xy / gScreenSize;
 }
 

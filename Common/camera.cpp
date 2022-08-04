@@ -96,8 +96,8 @@ bool Camera::OnKeyboard(OGLDEV_KEY Key)
 {
     bool Ret = false;
 
-    switch (Key) {
-
+    switch (Key) { // 方向键盘 + PgUp PgDn 6个按键控制在3维空间位置
+ 
     case OGLDEV_KEY_UP:
         {
             m_pos += (m_target * STEP_SCALE);
@@ -143,7 +143,7 @@ bool Camera::OnKeyboard(OGLDEV_KEY Key)
     default:
         break;            
     }
-
+	//printf("camera position %f, %f, %f\n", m_pos.x, m_pos.y, m_pos.z);
     return Ret;
 }
 

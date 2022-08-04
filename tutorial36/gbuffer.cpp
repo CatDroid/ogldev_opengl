@@ -59,17 +59,27 @@ bool GBuffer::Init(unsigned int WindowWidth, unsigned int WindowHeight)
     for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_textures) ; i++) {
         glBindTexture(GL_TEXTURE_2D, m_textures[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, WindowWidth, WindowHeight, 0, GL_RGB, GL_FLOAT, NULL);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        // 屏幕像素和 G Buffer texel 之间存在 1 对 1 的映射，我们将过滤类型设置为 GL_NEAREST。
+		// 这可以防止纹素之间不必要的插值，这可能会产生一些细微的扭曲
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_textures[i], 0);
     }
 
-    // depth
+    // depth 32bit深度浮点纹理 
     glBindTexture(GL_TEXTURE_2D, m_depthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, WindowWidth, WindowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 
+							0, 
+							GL_DEPTH_COMPONENT32F, 
+							WindowWidth, WindowHeight,
+							0, 
+							GL_DEPTH_COMPONENT, 
+							GL_FLOAT, 
+							NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTexture, 0);
 
-    GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0,
+    GLenum DrawBuffers[] = { 
+							GL_COLOR_ATTACHMENT0,
                              GL_COLOR_ATTACHMENT1,
                              GL_COLOR_ATTACHMENT2 };
 
@@ -94,7 +104,7 @@ void GBuffer::BindForWriting()
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
 }
 
-
+// 绑定G-Buffer缓冲各个纹理到纹理单元 
 void GBuffer::BindForReading()
 {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -103,4 +113,5 @@ void GBuffer::BindForReading()
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, m_textures[GBUFFER_TEXTURE_TYPE_POSITION + i]);
     }
+
 }

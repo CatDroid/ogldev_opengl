@@ -156,14 +156,24 @@ public:
 
         DSGeometryPass();
 
+		// 点光源的光球light volume阶段 需要打开模板测试
         // We need stencil to be enabled in the stencil pass to get the stencil buffer
         // updated and we also need it in the light pass because we render the light
         // only if the stencil passes.
         glEnable(GL_STENCIL_TEST);
 
-        for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_pointLight); i++) {
-                DSStencilPass(i);
-                DSPointLightPass(i);
+        for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_pointLight); i++)
+		{
+			// 对于每一个光，我们都做一个模板阶段（标记相关像素），
+			// 然后是一个取决于模板值的点光源着色阶段。
+			// 需要分别处理每个光源的原因是，
+			// 一旦模板值由于其中一个灯而变得大于零，
+			// 我们就无法判断另一个也与同一像素重叠的光源是否相关。
+
+			// 清除并更新模板 正面-1 背面+1 (深度测试/深度写入关闭 打开模板测试/总是通过 先模板后深度 )
+            DSStencilPass(i);
+			// 点光源着色 (模板不为0的元素 关闭深度测试,开启模板测试,开启混合1+1)
+            DSPointLightPass(i);
         }
 
         // The directional light does not need a stencil test because its volume
@@ -188,10 +198,11 @@ public:
 
         // Only the geometry pass updates the depth buffer
         glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		//glDisable(GL_BLEND); 这里实际是disable了blend的
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glEnable(GL_DEPTH_TEST);
 
         Pipeline p;
         p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
@@ -208,6 +219,7 @@ public:
         // When we get here the depth buffer is already populated and the stencil pass
         // depends on it, but it does not write to it.
         glDepthMask(GL_FALSE);
+		glDisable(GL_DEPTH_TEST);
     }
 
     void DSStencilPass(unsigned int PointLightIndex)
@@ -258,7 +270,7 @@ public:
 
 		glDisable(GL_CULL_FACE); // 注意!! 关闭背面剔除!! 必须使用双面
 
-		glClear(GL_STENCIL_BUFFER_BIT); // 注意!! 只清除深度模板缓冲区上的模板部分
+		glClear(GL_STENCIL_BUFFER_BIT); // 注意!!(每个点光源) 只清除深度模板缓冲区上的模板部分
 
         // We need the stencil test to be enabled but we want it
         // to succeed always. Only the depth test matters.
@@ -273,8 +285,9 @@ public:
 		// 哪一个面--模板失败--深度失败(模板通过)--深度通过
 		// glStencilOpSeparate(	GLenum face,GLenum sfail, GLenum dpfail, GLenum dppass);
 
-        glStencilOpSeparate(GL_BACK,   GL_KEEP, GL_INCR_WRAP,  GL_KEEP);
-        glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP,  GL_KEEP);
+		// 根据深度测试是否失败, 失败的话 背面+1 正面-1, 其他情况保持不变 (结果模板只有正数的地方 才有光源)
+        glStencilOpSeparate(GL_BACK,   GL_KEEP, GL_INCR_WRAP,  GL_KEEP);// +1 背面
+        glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP,  GL_KEEP);// -1 正面
 
         Pipeline p;
         p.WorldPos(m_pointLight[PointLightIndex].Position);
@@ -290,6 +303,8 @@ public:
 
     void DSPointLightPass(unsigned int PointLightIndex)
     {
+		// 绑定fbo中的颜色附件4作为输出(颜色附件4只在开始时候clear一次/StartFrame)
+		// g-buffer作为输入纹理
 		m_gbuffer.BindForLightPass();
 
         m_DSPointLightPassTech.Enable();
@@ -301,15 +316,18 @@ public:
 		// 我们将在一个非常小的像素子集上计算光照
 		// 这些像素实际上被光球覆盖。
 		//
-        glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
+        glStencilFunc(GL_NOTEQUAL, 0, 0xFF); // mask是0xFF 
 
-        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_DEPTH_TEST); // 不用深度测试
         glEnable(GL_BLEND);
-        glBlendEquation(GL_FUNC_ADD);
+        glBlendEquation(GL_FUNC_ADD); // blend 1+1 
         glBlendFunc(GL_ONE, GL_ONE);
 
         glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
+        glCullFace(GL_FRONT);    // 注意!! 剔除正面, 避免两次渲染 和摄像机进入光球没有效果
+
+		// 启用正面多边形的剔除。因为相机可能在光球(light volume)内，
+		// 如果我们像往常一样进行背面剔除，我们将在退出其体积之前看不到光。
 
         Pipeline p;
         p.WorldPos(m_pointLight[PointLightIndex].Position);
@@ -320,8 +338,8 @@ public:
         m_DSPointLightPassTech.SetWVP(p.GetWVPTrans());
         m_DSPointLightPassTech.SetPointLight(m_pointLight[PointLightIndex]);
         m_bsphere.Render();
-        glCullFace(GL_BACK);
 
+        glCullFace(GL_BACK);
 		glDisable(GL_BLEND);
     }
 
@@ -346,6 +364,12 @@ public:
 
     void DSFinalPass()
     {
+		/*
+			为什么在 G-Buffer 中添加中间颜色缓冲区而不是直接渲染到屏幕:
+
+			几何阶段渲染到G-Buffer, 需要深度缓冲, 但是不能直接用默认缓冲的深度(没有接口获取深度附件的句柄)
+
+		*/
 		m_gbuffer.BindForFinalPass();
 		glBlitFramebuffer(
 			0, 0, 
